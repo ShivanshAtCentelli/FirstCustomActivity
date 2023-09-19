@@ -74,5 +74,63 @@ namespace StarterPackage.FirstActivityBuild
             Marshal.ReleaseComObject(xlWorkbook);
             Marshal.ReleaseComObject(xlApplication);
         }
+
+        
+    }
+
+    public class ReadRange : CodeActivity
+    {
+        [Category("Input")]
+        [RequiredArgument]
+        [DisplayName("Workbook Path")]
+        [Description("Please enter the full path of the where workbook is to be created")]
+        public InArgument<string> istrFilePath { get; set; }
+
+        [Category("Input")]
+        [RequiredArgument]
+        [DisplayName("Sheet Name")]
+        [Description("Please enter the sheet name")]
+        public InArgument<string> istrSheetName { get; set; } = "Sheet1";
+
+        [Category("Input")]
+        [RequiredArgument]
+        [DisplayName("Range")]
+        [Description("Please enter the range")]
+        public InArgument<string> istrRange { get; set; } = "A1:B2";
+
+        [Category("Output")]
+        [RequiredArgument]
+        [DisplayName("DataTable")]
+        [Description("Use a DataTable variable")]
+        public OutArgument<System.Data.DataTable> odtOutput { get; set; }
+
+
+        protected override void Execute(CodeActivityContext context)
+        {
+            try
+            {
+                string strFileName = istrFilePath.Get(context);
+                string strSheetName = istrSheetName.Get(context);
+                string strRange = istrRange.Get(context);
+
+                // Insert data into DataTable
+                System.Data.OleDb.OleDbConnection oleDbConnection = new System.Data.OleDb.OleDbConnection("provider=Microsoft.ACE..OLEDB.12.0;Data Source'" + strFileName + "'; Extended Properties=Excel 8.0;");
+                System.Data.OleDb.OleDbDataAdapter oleDbDataAdapter = new System.Data.OleDb.OleDbDataAdapter("SELECT * FROM  [" + strSheetName + "$" + strRange + "]", oleDbConnection);
+                oleDbDataAdapter.TableMappings.Add("Table, TestTable");
+                System.Data.DataSet dataSet = new System.Data.DataSet();
+                oleDbDataAdapter.Fill(dataSet);
+                System.Data.DataTable dataTable = dataSet.Tables[0];
+
+                // Close all the connections
+                oleDbConnection.Close();
+
+                // Return output
+                odtOutput.Set(context, dataTable);
+            }
+            catch(System.Exception ex)
+            {
+                Console.WriteLine("Exception: " + ex.Message);
+            }
+        }
     }
 }
